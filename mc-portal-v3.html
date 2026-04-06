@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ateneo Lex MC Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #070412;
+      --bg-elevated: #0f071f;
+      --bg-soft: #140a2a;
+      --border-subtle: rgba(255,255,255,0.08);
+      --text-main: #f8f5ff;
+      --text-muted: #b7acd9;
+      --accent: #7f4ad9;
+      --accent-soft: #b59cf5;
+      --lavender: #e0d7ff;
+      --danger: #ff5c7a;
+      --success: #4cd3a8;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --shadow-soft: 0 18px 60px rgba(0,0,0,0.55);
+      --transition-fast: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    html { font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif; background: radial-gradient(circle at top left,#22124d,#070412 55%); color: var(--text-main); height: 100%; }
+    body { min-height: 100vh; display: flex; align-items: stretch; justify-content: center; padding: 24px; }
+    .app-shell { position: relative; width: min(1180px, 100%); min-height: min(720px, 100vh - 48px); background: linear-gradient(145deg, rgba(255,255,255,0.04), rgba(22,11,53,0.96)); border-radius: 24px; border: 1px solid rgba(255,255,255,0.06); box-shadow: var(--shadow-soft); overflow: hidden; display: flex; flex-direction: column; backdrop-filter: blur(26px) saturate(160%); }
+
+    /* Loading overlay */
+    .loading-overlay { position: absolute; inset: 0; background: radial-gradient(circle at top, #3c1a77 0, #070412 55%); display: flex; align-items: center; justify-content: center; z-index: 50; transition: opacity 400ms ease, visibility 400ms ease; }
+    .loading-overlay.hidden { opacity: 0; visibility: hidden; }
+    .loading-card { background: rgba(7,4,18,0.9); border-radius: 20px; padding: 32px 40px; border: 1px solid rgba(255,255,255,0.18); display: flex; align-items: center; gap: 24px; box-shadow: 0 24px 80px rgba(0,0,0,0.8); }
+    .lex-mark { position: relative; width: 52px; height: 60px; display: grid; place-items: center; }
+    .lex-mark-bar-top { width: 52px; height: 6px; border-radius: 999px; background: linear-gradient(90deg,#b59cf5,#7f4ad9); margin-bottom: 4px; }
+    .lex-mark-bar-mid { width: 40px; height: 5px; border-radius: 999px; background: #3a8ddb; margin-bottom: 4px; }
+    .lex-mark-columns { display: flex; gap: 4px; align-items: stretch; justify-content: flex-end; width: 100%; }
+    .lex-mark-col { width: 6px; border-radius: 999px; background: linear-gradient(180deg,#b59cf5,#7f4ad9); }
+    .lex-mark-col:nth-child(1) { height: 32px; }
+    .lex-mark-col:nth-child(2) { height: 36px; }
+    .lex-mark-col:nth-child(3) { height: 40px; }
+    .lex-mark-col:nth-child(4) { height: 44px; }
+    .loading-meta { display: flex; flex-direction: column; gap: 4px; }
+    .loading-meta-title { font-family: 'DM Serif Display', serif; font-size: 1.1rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--lavender); }
+    .loading-meta-sub { font-size: 0.9rem; color: var(--text-muted); max-width: 24rem; }
+    .loading-spinner { width: 32px; height: 32px; border-radius: 999px; border: 3px solid rgba(255,255,255,0.18); border-top-color: var(--accent-soft); animation: spin 900ms linear infinite; margin-left: 18px; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Login overlay */
+    .login-overlay { position: absolute; inset: 0; background: linear-gradient(145deg, rgba(7,4,18,0.98), rgba(22,11,53,0.96)); display: flex; align-items: center; justify-content: center; z-index: 40; transition: opacity 300ms ease, visibility 300ms ease; }
+    .login-overlay.hidden { opacity: 0; visibility: hidden; }
+    .login-card { max-width: 520px; width: 92%; border-radius: 20px; background: radial-gradient(circle at top left, rgba(255,255,255,0.06), rgba(7,4,18,0.98)); border: 1px solid rgba(255,255,255,0.16); padding: 24px 24px 22px; box-shadow: 0 20px 60px rgba(0,0,0,0.8); }
+    .login-heading { font-family: 'DM Serif Display', serif; font-size: 1.4rem; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+    .login-sub { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px; }
+    .login-role-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-top: 8px; }
+    .login-role { border-radius: 14px; border: 1px solid rgba(255,255,255,0.18); padding: 12px 12px 14px; background: rgba(7,4,18,0.9); cursor: pointer; transition: border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast); display: flex; flex-direction: column; gap: 6px; }
+    .login-role:hover { border-color: rgba(181,156,245,0.9); background: linear-gradient(135deg, rgba(181,156,245,0.16), rgba(7,4,18,0.98)); transform: translateY(-1px); box-shadow: 0 16px 42px rgba(0,0,0,0.7); }
+    .login-role-title { font-weight: 600; font-size: 0.95rem; }
+    .login-role-sub { font-size: 0.8rem; color: var(--text-muted); }
+
+    header.app-header { display: flex; align-items: center; padding: 18px 22px; border-bottom: 1px solid rgba(255,255,255,0.08); gap: 18px; }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-mark { width: 38px; height: 44px; border-radius: 12px; background: radial-gradient(circle at top, #b59cf5 0, #7f4ad9 38%, #0f071f 90%); display: grid; place-items: center; position: relative; overflow: hidden; }
+    .brand-mark::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 30% 0, rgba(255,255,255,0.45), transparent 55%); opacity: 0.75; mix-blend-mode: screen; }
+    .brand-mark-inner { position: relative; width: 60%; height: 70%; display: flex; flex-direction: column; justify-content: flex-start; }
+    .brand-mark-inner-top, .brand-mark-inner-mid { border-radius: 999px; background: #f7f2ff; }
+    .brand-mark-inner-top { height: 4px; width: 100%; margin-top: 6px; }
+    .brand-mark-inner-mid { height: 3px; width: 76%; margin-top: 4px; background: #4fb4ff; }
+    .brand-mark-inner-cols { display: flex; justify-content: flex-end; gap: 3px; margin-top: 6px; }
+    .brand-mark-inner-col { flex: 0 0 4px; border-radius: 999px; background: #f7f2ff; }
+    .brand-mark-inner-col:nth-child(1) { height: 14px; }
+    .brand-mark-inner-col:nth-child(2) { height: 18px; }
+    .brand-mark-inner-col:nth-child(3) { height: 22px; }
+    .brand-text { display: flex; flex-direction: column; }
+    .brand-name { font-family: 'DM Serif Display', serif; font-size: 1.1rem; letter-spacing: 0.12em; text-transform: uppercase; }
+    .brand-sub { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.16em; }
+    .header-spacer { flex: 1; }
+    .header-controls { display: flex; align-items: center; gap: 10px; }
+    .chip { border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); padding: 6px 10px; font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 6px; align-items: center; background: rgba(7,4,18,0.65); }
+    .chip-dot { width: 7px; height: 7px; border-radius: 999px; background: radial-gradient(circle,#4cd3a8 0,#0f784f 70%); box-shadow: 0 0 0 3px rgba(76,211,168,0.25); }
+
+    .btn { border-radius: 999px; padding: 8px 16px; font-size: 0.8rem; font-weight: 500; border: 1px solid transparent; background: rgba(255,255,255,0.04); color: var(--text-main); display: inline-flex; align-items: center; gap: 8px; cursor: pointer; transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast); }
+    .btn-primary { background: linear-gradient(135deg,#b59cf5,#7f4ad9); color: #120922; box-shadow: 0 10px 26px rgba(0,0,0,0.5); border-color: rgba(255,255,255,0.18); }
+    .btn-secondary { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.16); }
+    .btn-ghost { background: transparent; border-color: rgba(255,255,255,0.14); color: var(--text-muted); }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 12px 30px rgba(0,0,0,0.45); background-color: rgba(255,255,255,0.08); }
+    .btn:active { transform: translateY(0); box-shadow: none; }
+
+    main { display: grid; grid-template-columns: 220px 1fr; flex: 1; min-height: 0; }
+
+    nav.sidebar { border-right: 1px solid rgba(255,255,255,0.08); padding: 16px 14px 18px; display: flex; flex-direction: column; gap: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(7,4,18,0.95)); }
+    .nav-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); margin-bottom: 4px; }
+    .nav-group { display: flex; flex-direction: column; gap: 6px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; border-radius: 11px; padding: 9px 11px; border: 1px solid transparent; cursor: pointer; font-size: 0.85rem; color: var(--text-muted); transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast); }
+    .nav-item-icon { width: 22px; height: 22px; border-radius: 8px; background: radial-gradient(circle at 20% 0, rgba(255,255,255,0.35), transparent 60%); border: 1px solid rgba(255,255,255,0.16); display: grid; place-items: center; font-size: 0.75rem; color: var(--lavender); }
+    .nav-item[data-page="works"] .nav-item-icon::before { content: '◷'; }
+    .nav-item[data-page="shoots"] .nav-item-icon::before { content: '◣'; }
+    .nav-item[data-page="notifications"] .nav-item-icon::before { content: '⟡'; }
+
+    .nav-item-label { flex: 1; }
+
+    .nav-item.active { background: linear-gradient(135deg, rgba(181,156,245,0.28), rgba(127,74,217,0.7)); border-color: rgba(255,255,255,0.7); color: #120922; transform: translateY(-1px); box-shadow: 0 10px 26px rgba(0,0,0,0.65); }
+    .nav-item.active .nav-item-icon { background: rgba(7,4,18,0.12); border-color: rgba(7,4,18,0.18); color: #120922; }
+
+    .nav-footer { margin-top: auto; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.12); font-size: 0.7rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px; }
+
+    section.page { padding: 18px 20px 20px 20px; overflow: hidden auto; display: none; animation: pageIn 260ms var(--transition-fast) forwards; }
+    section.page.active { display: block; }
+
+    @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .page-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+    .page-title-group { display: flex; flex-direction: column; gap: 2px; }
+    .page-title { font-size: 1.05rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+    .page-subtitle { font-size: 0.8rem; color: var(--text-muted); max-width: 44rem; }
+
+    .pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 9px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; border: 1px solid rgba(255,255,255,0.22); background: rgba(7,4,18,0.82); color: var(--lavender); }
+    .pill-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--accent); }
+
+    .grid-two { display: grid; grid-template-columns: minmax(0,1.3fr) minmax(0,1fr); gap: 16px; align-items: flex-start; }
+
+    .card { border-radius: var(--radius-lg); background: radial-gradient(circle at top left, rgba(255,255,255,0.07), rgba(7,4,18,0.96)); border: 1px solid var(--border-subtle); padding: 14px 14px 16px; box-shadow: 0 10px 36px rgba(0,0,0,0.55); position: relative; overflow: hidden; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+    .card-title { font-size: 0.9rem; font-weight: 500; }
+    .card-meta { font-size: 0.75rem; color: var(--text-muted); }
+
+    .small { font-size: 0.75rem; color: var(--text-muted); }
+
+    /* Work timeline */
+    .timeline { position: relative; padding-left: 18px; margin-top: 4px; }
+    .timeline::before { content: ''; position: absolute; left: 4px; top: 0; bottom: 0; width: 1px; background: linear-gradient(to bottom, rgba(181,156,245,0.7), rgba(181,156,245,0)); }
+    .timeline-item { position: relative; padding-left: 12px; padding-bottom: 10px; cursor: pointer; border-radius: 8px; transition: background var(--transition-fast), transform var(--transition-fast); }
+    .timeline-item::before { content: ''; position: absolute; left: -2px; top: 4px; width: 8px; height: 8px; border-radius: 999px; background: radial-gradient(circle,var(--accent-soft) 0,#7f4ad9 60%); box-shadow: 0 0 0 3px rgba(181,156,245,0.3); }
+    .timeline-item:hover { background: rgba(255,255,255,0.04); transform: translateY(-1px); }
+    .timeline-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .timeline-main { max-width: 70%; }
+    .timeline-date { font-size: 0.75rem; color: var(--text-muted); }
+    .timeline-title { font-size: 0.85rem; }
+    .timeline-tag { font-size: 0.7rem; color: var(--lavender); opacity: 0.9; margin-top: 2px; }
+
+    .badge { border-radius: 999px; padding: 2px 7px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; border: 1px solid rgba(255,255,255,0.3); color: var(--lavender); }
+    .badge-status-pending { border-color: rgba(255,255,255,0.4); }
+    .badge-status-review { border-color: rgba(255,92,122,0.7); color: var(--danger); }
+    .badge-status-approved { border-color: rgba(76,211,168,0.7); color: var(--success); }
+
+    /* Forms */
+    form.inline-form { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+    .field { display: flex; flex-direction: column; gap: 4px; font-size: 0.75rem; }
+    .field-row { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+    label { color: var(--text-muted); }
+    input, select, textarea { background: rgba(7,4,18,0.85); border-radius: 9px; border: 1px solid rgba(255,255,255,0.16); padding: 7px 9px; color: var(--text-main); font-size: 0.8rem; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-soft); box-shadow: 0 0 0 1px rgba(181,156,245,0.7); }
+    textarea { resize: vertical; min-height: 70px; }
+
+    /* Shoot planner cards */
+    .shoot-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 6px; }
+    .shoot-card { border-radius: 13px; border: 1px solid var(--border-subtle); padding: 10px 10px 11px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(7,4,18,0.96)); font-size: 0.8rem; cursor: pointer; transition: border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast); }
+    .shoot-card:hover { border-color: rgba(181,156,245,0.8); transform: translateY(-1px); box-shadow: 0 14px 30px rgba(0,0,0,0.6); }
+    .shoot-name { font-weight: 500; margin-bottom: 2px; }
+    .shoot-meta { font-size: 0.74rem; color: var(--text-muted); }
+
+    /* Modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(4,0,16,0.75); display: none; align-items: center; justify-content: center; z-index: 45; backdrop-filter: blur(18px); }
+    .modal-backdrop.active { display: flex; animation: fadeIn 200ms ease forwards; }
+    .modal { width: min(480px, 96%); border-radius: 18px; background: radial-gradient(circle at top left, rgba(255,255,255,0.04), rgba(7,4,18,0.96)); border: 1px solid rgba(255,255,255,0.16); box-shadow: 0 24px 80px rgba(0,0,0,0.8); padding: 16px 16px 18px; max-height: 80vh; overflow: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .modal-title { font-size: 0.95rem; font-weight: 500; }
+    .modal-close { border-radius: 999px; width: 26px; height: 26px; border: 1px solid rgba(255,255,255,0.24); background: rgba(255,255,255,0.03); color: var(--text-muted); font-size: 0.75rem; cursor: pointer; display: grid; place-items: center; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Toast */
+    .toast-container { position: fixed; right: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 8px; z-index: 60; }
+    .toast { min-width: 240px; max-width: 320px; border-radius: 999px; background: rgba(7,4,18,0.95); border: 1px solid rgba(255,255,255,0.2); padding: 8px 14px; font-size: 0.78rem; display: flex; align-items: center; justify-content: space-between; gap: 8px; box-shadow: 0 10px 26px rgba(0,0,0,0.7); animation: toastIn 180ms ease-out forwards; }
+    .toast-kind-success { border-color: rgba(76,211,168,0.6); }
+    .toast-kind-error { border-color: rgba(255,92,122,0.6); }
+    .toast-label { color: var(--text-main); }
+    .toast-meta { font-size: 0.72rem; color: var(--text-muted); }
+    .toast-close { border-radius: 999px; width: 20px; height: 20px; border: 1px solid rgba(255,255,255,0.24); background: transparent; color: var(--text-muted); display: grid; place-items: center; font-size: 0.7rem; cursor: pointer; }
+
+    @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 900px) {
+      body { padding: 12px; }
+      .app-shell { border-radius: 18px; }
+      main { grid-template-columns: 1fr; }
+      nav.sidebar { flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px; }
+      .nav-group { flex-direction: row; }
+      .nav-item { min-width: 150px; }
+      .nav-footer { display: none; }
+    }
+
+    @media (max-width: 640px) {
+      header.app-header { flex-wrap: wrap; row-gap: 10px; }
+      .header-spacer { flex-basis: 100%; }
+      .grid-two { grid-template-columns: minmax(0,1fr); }
+      .shoot-grid { grid-template-columns: minmax(0,1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-card">
+        <div class="lex-mark">
+          <div class="lex-mark-bar-top"></div>
+          <div class="lex-mark-bar-mid"></div>
+          <div class="lex-mark-columns">
+            <div class="lex-mark-col"></div>
+            <div class="lex-mark-col"></div>
+            <div class="lex-mark-col"></div>
+            <div class="lex-mark-col"></div>
+          </div>
+        </div>
+        <div class="loading-meta">
+          <div class="loading-meta-title">Ateneo Lex MC Portal</div>
+          <div class="loading-meta-sub">Preparing assigned works, shoots, and reminders for the Marketing Communications team.</div>
+        </div>
+        <div class="loading-spinner" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <div class="login-overlay" id="loginOverlay">
+      <div class="login-card">
+        <div class="login-heading">Log in to MC Portal</div>
+        <div class="login-sub">Choose how you are entering the portal. The screens adapt to your role so there is no confusion about what you can and cannot do.</div>
+        <div class="login-role-grid">
+          <button type="button" class="login-role" data-role="deputy">
+            <div class="login-role-title">Deputy view</div>
+            <div class="login-role-sub">See works assigned to you, upload revisions, and resolve comments clearly.</div>
+          </button>
+          <button type="button" class="login-role" data-role="approver">
+            <div class="login-role-title">Approver view</div>
+            <div class="login-role-sub">Review submissions, leave comments, and update blast status without touching uploads.</div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <div class="brand-mark-inner">
+            <div class="brand-mark-inner-top"></div>
+            <div class="brand-mark-inner-mid"></div>
+            <div class="brand-mark-inner-cols">
+              <div class="brand-mark-inner-col"></div>
+              <div class="brand-mark-inner-col"></div>
+              <div class="brand-mark-inner-col"></div>
+            </div>
+          </div>
+        </div>
+        <div class="brand-text">
+          <div class="brand-name">Ateneo Lex</div>
+          <div class="brand-sub" id="brandRoleLabel">MC Operations Portal</div>
+        </div>
+      </div>
+      <div class="header-spacer"></div>
+      <div class="header-controls">
+        <div class="chip" id="roleChip">
+          <span class="chip-dot"></span>
+          <span>Choose a role to begin</span>
+        </div>
+        <button class="btn btn-secondary" id="sampleNotificationBtn" type="button">Show sample notification</button>
+      </div>
+    </header>
+
+    <main>
+      <nav class="sidebar">
+        <div>
+          <div class="nav-label" id="navLabelPrimary">Overview</div>
+          <div class="nav-group">
+            <button class="nav-item active" data-page="works" type="button">
+              <div class="nav-item-icon"></div>
+              <div class="nav-item-label" id="navWorksLabel">Works assigned to you</div>
+            </button>
+          </div>
+        </div>
+        <div>
+          <div class="nav-label">Planning</div>
+          <div class="nav-group">
+            <button class="nav-item" data-page="shoots" type="button">
+              <div class="nav-item-icon"></div>
+              <div class="nav-item-label">Shoot planner</div>
+            </button>
+          </div>
+        </div>
+        <div>
+          <div class="nav-label">Reminders</div>
+          <div class="nav-group">
+            <button class="nav-item" data-page="notifications" type="button">
+              <div class="nav-item-icon"></div>
+              <div class="nav-item-label">Notifications</div>
+            </button>
+          </div>
+        </div>
+        <div class="nav-footer">
+          <div>Busy view is simulated with real-looking projects: LFC and LSW, each with several blasts.</div>
+        </div>
+      </nav>
+
+      <!-- Works / Blasts page -->
+      <section class="page active" id="page-works">
+        <div class="page-header">
+          <div class="page-title-group">
+            <div class="page-title" id="worksPageTitle">Works assigned to you</div>
+            <div class="page-subtitle" id="worksPageSubtitle">Timeline of drafts and pubs grouped by project so you always know what is coming up next.</div>
+          </div>
+          <span class="pill"><span class="pill-dot"></span> LFC & LSW projects populated</span>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title" id="worksCardTitle">Timeline of assigned works</div>
+              <div class="card-meta" id="worksCardMeta">Select any entry to open the full details window.</div>
+            </div>
+          </div>
+          <div id="worksTimeline" class="timeline small"></div>
+        </div>
+      </section>
+
+      <!-- Shoot planner page -->
+      <section class="page" id="page-shoots">
+        <div class="page-header">
+          <div class="page-title-group">
+            <div class="page-title">Shoot planner</div>
+            <div class="page-subtitle">Card view of shoots organised by date. Each card opens into a full editable breakdown.</div>
+          </div>
+          <span class="pill"><span class="pill-dot"></span> Includes upcoming LFC & LSW shoots</span>
+        </div>
+        <div class="grid-two">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Add or edit a shoot</div>
+                <div class="card-meta">Adjust details then press Save. All changes stay within this planner.</div>
+              </div>
+            </div>
+            <form class="inline-form" id="shootForm">
+              <input type="hidden" id="shootId" />
+              <div class="field">
+                <label for="shootProject">Project</label>
+                <input id="shootProject" type="text" placeholder="e.g., LFC Main Video Coverage" />
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label for="shootDate">Date</label>
+                  <input id="shootDate" type="date" />
+                </div>
+                <div class="field">
+                  <label for="shootTime">Time</label>
+                  <input id="shootTime" type="time" />
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label for="shootPlace">Place</label>
+                  <input id="shootPlace" type="text" placeholder="e.g., SEC Field" />
+                </div>
+                <div class="field">
+                  <label for="shootActors">Actors</label>
+                  <input id="shootActors" type="text" placeholder="Names or roles" />
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label for="shootProps">Props</label>
+                  <input id="shootProps" type="text" placeholder="Equipment, props" />
+                </div>
+                <div class="field">
+                  <label for="shootPhotographer">Photographer / Videographer</label>
+                  <input id="shootPhotographer" type="text" placeholder="Who is shooting?" />
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label for="shootEditor">Video editor</label>
+                  <input id="shootEditor" type="text" placeholder="Who is editing?" />
+                </div>
+                <div class="field">
+                  <label for="shootLink">More information link</label>
+                  <input id="shootLink" type="url" placeholder="Drive doc or Notion link" />
+                </div>
+              </div>
+              <div style="margin-top:8px;display:flex;gap:8px;">
+                <button class="btn btn-primary" type="submit">Save shoot</button>
+                <button class="btn btn-ghost" type="button" id="clearShootFormBtn">Clear form</button>
+              </div>
+            </form>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">All shoots by date</div>
+                <div class="card-meta">Tap a card to load it into the editor on the left.</div>
+              </div>
+            </div>
+            <div id="shootGrid" class="shoot-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Notifications page -->
+      <section class="page" id="page-notifications">
+        <div class="page-header">
+          <div class="page-title-group">
+            <div class="page-title">Notifications</div>
+            <div class="page-subtitle">Configure how reminders appear. Use the preview button to see a sample push notification.</div>
+          </div>
+          <span class="pill"><span class="pill-dot"></span> Uses standard browser notifications</span>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Preview and permissions</div>
+              <div class="card-meta">If notifications are blocked in your browser, the preview will explain what to change.</div>
+            </div>
+          </div>
+          <p class="small">Press "Show sample notification" in the header or below to simulate an Apple-style alert such as:</p>
+          <ul class="small" style="margin-top:4px;padding-left:18px;">
+            <li>Your video submission for LFC has a comment from Tyler Zamuco.</li>
+            <li>Your teaser draft for LFC is due today. Remember to follow lead times.</li>
+            <li>Your shoot is in 4 days. Make sure you have secured your permit by today.</li>
+          </ul>
+          <div style="margin-top:10px;">
+            <button class="btn btn-primary" type="button" id="sampleNotificationBtnSecondary">Show sample notification</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Work modal (used for both roles) -->
+  <div class="modal-backdrop" id="workModalBackdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="workModalTitle">
+      <div class="modal-header">
+        <div class="modal-title" id="workModalTitle">Work details</div>
+        <button type="button" class="modal-close" id="workModalClose">×</button>
+      </div>
+      <div id="workModalBody" class="small"></div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loginOverlay = document.getElementById('loginOverlay');
+    const roleButtons = Array.from(document.querySelectorAll('.login-role'));
+    const brandRoleLabel = document.getElementById('brandRoleLabel');
+    const roleChip = document.getElementById('roleChip');
+    const navWorksLabel = document.getElementById('navWorksLabel');
+    const worksPageTitle = document.getElementById('worksPageTitle');
+    const worksPageSubtitle = document.getElementById('worksPageSubtitle');
+    const worksCardTitle = document.getElementById('worksCardTitle');
+    const worksCardMeta = document.getElementById('worksCardMeta');
+
+    let currentRole = null; // 'deputy' or 'approver'
+
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        loadingOverlay.classList.add('hidden');
+      }, 900);
+    });
+
+    roleButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentRole = btn.dataset.role;
+        applyRoleUI();
+        loginOverlay.classList.add('hidden');
+      });
+    });
+
+    function applyRoleUI() {
+      if (currentRole === 'deputy') {
+        brandRoleLabel.textContent = 'MC Portal — Deputy';
+        roleChip.querySelector('span:nth-child(2)').textContent = 'Logged in as deputy';
+        navWorksLabel.textContent = 'Works assigned to you';
+        worksPageTitle.textContent = 'Works assigned to you';
+        worksPageSubtitle.textContent = 'Each lane is a project. Click an item to upload your work and mark comments as resolved.';
+        worksCardTitle.textContent = 'Timeline of assigned works';
+        worksCardMeta.textContent = 'Open any entry to submit content and see comments left for you.';
+      } else if (currentRole === 'approver') {
+        brandRoleLabel.textContent = 'MC Portal — Approver';
+        roleChip.querySelector('span:nth-child(2)').textContent = 'Logged in as approver';
+        navWorksLabel.textContent = 'Blasts to be approved';
+        worksPageTitle.textContent = 'Blasts to be approved';
+        worksPageSubtitle.textContent = 'Grouped by project so you see all LFC and LSW items that need your decision.';
+        worksCardTitle.textContent = 'Timeline of pending blasts';
+        worksCardMeta.textContent = 'Open any entry to review the deputy submission, comment, and update status.';
+      }
+      renderWorksTimeline();
+    }
+
+    function showToast(label, meta = '', kind = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast ' + (kind === 'success' ? 'toast-kind-success' : kind === 'error' ? 'toast-kind-error' : '');
+      toast.innerHTML = `<div><div class="toast-label">${label}</div>${meta ? `<div class="toast-meta">${meta}</div>` : ''}</div><button type="button" class="toast-close">×</button>`;
+      container.appendChild(toast);
+      const closeBtn = toast.querySelector('.toast-close');
+      closeBtn.addEventListener('click', () => container.removeChild(toast));
+      setTimeout(() => { if (toast.parentElement === container) container.removeChild(toast); }, 4800);
+    }
+
+    const navItems = Array.from(document.querySelectorAll('.nav-item'));
+    const pages = {
+      works: document.getElementById('page-works'),
+      shoots: document.getElementById('page-shoots'),
+      notifications: document.getElementById('page-notifications')
+    };
+
+    function openPage(key) {
+      Object.values(pages).forEach(sec => sec.classList.remove('active'));
+      const page = pages[key];
+      if (page) page.classList.add('active');
+      navItems.forEach(btn => {
+        if (btn.dataset.page === key) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+    }
+
+    navItems.forEach(btn => {
+      btn.addEventListener('click', () => openPage(btn.dataset.page));
+    });
+
+    let notificationsEnabled = false;
+
+    async function showSampleNotification() {
+      if (!('Notification' in window)) {
+        showToast('Notifications are not supported in this browser.', '', 'error');
+        return;
+      }
+      if (Notification.permission !== 'granted') {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          showToast('Permission to show notifications was not granted.', 'Allow notifications in your browser to see the preview.', 'error');
+          return;
+        }
+      }
+      notificationsEnabled = true;
+      const samples = [
+        'Your video submission for LFC has a comment from Tyler Zamuco.',
+        'Your teaser draft for LFC is due today. Remember to follow lead times.',
+        'Your shoot is in 4 days. Make sure you have secured your permit by today.'
+      ];
+      const message = samples[Math.floor(Math.random() * samples.length)];
+      try {
+        new Notification('Ateneo Lex MC', { body: message });
+      } catch (err) {
+        showToast('Notification could not be shown.', '', 'error');
+      }
+    }
+
+    document.getElementById('sampleNotificationBtn').addEventListener('click', showSampleNotification);
+    document.getElementById('sampleNotificationBtnSecondary').addEventListener('click', showSampleNotification);
+
+    // --- Data simulation ---
+
+    const now = new Date();
+    function daysFromToday(n) {
+      const d = new Date(now);
+      d.setDate(d.getDate() + n);
+      d.setHours(18, 0, 0, 0);
+      return d;
+    }
+
+    const blasts = [
+      {
+        id: 'b1',
+        project: 'LFC',
+        title: 'Main teaser visual',
+        dueDate: daysFromToday(1),
+        status: 'In review',
+        latestSubmissionLink: 'https://drive.google.com/lfc-teaser-v1',
+        submissionNotes: 'First pass on the teaser, still open to headline tweaks.',
+        comments: [
+          { id: 'c1', from: 'Tyler Zamuco', text: 'Please soften the CTA and adjust the lavender tone to match the brand guide.', resolved: false },
+          { id: 'c2', from: 'Brand Admin', text: 'Logo lockup looks good. Keep this placement.', resolved: true }
+        ]
+      },
+      {
+        id: 'b2',
+        project: 'LFC',
+        title: 'IG story countdown set',
+        dueDate: daysFromToday(3),
+        status: 'Pending submission',
+        latestSubmissionLink: '',
+        submissionNotes: '',
+        comments: []
+      },
+      {
+        id: 'b3',
+        project: 'LSW',
+        title: 'Speaker announce layout',
+        dueDate: daysFromToday(2),
+        status: 'In review',
+        latestSubmissionLink: 'https://drive.google.com/lsw-speaker-tiles',
+        submissionNotes: 'Photos already colour-corrected from PDOC pool.',
+        comments: [
+          { id: 'c3', from: 'Internal CD', text: 'Try a tighter crop on the second speaker and increase name size slightly.', resolved: false }
+        ]
+      },
+      {
+        id: 'b4',
+        project: 'LSW',
+        title: 'Post-event album cover',
+        dueDate: daysFromToday(6),
+        status: 'Planned',
+        latestSubmissionLink: '',
+        submissionNotes: '',
+        comments: []
+      }
+    ];
+
+    const shoots = [
+      {
+        id: 's1',
+        project: 'LFC teaser shoot',
+        date: daysFromToday(4),
+        time: '16:00',
+        place: 'SEC Field',
+        actors: 'Host + 2 volunteers',
+        props: 'Lex banner, handheld mic, reflector',
+        photographer: 'Andrei (MC Deputy)',
+        editor: 'Janelle',
+        link: 'https://drive.google.com/lfc-shoot-brief'
+      },
+      {
+        id: 's2',
+        project: 'LSW speaker portraits',
+        date: daysFromToday(7),
+        time: '10:00',
+        place: 'Arete foyer',
+        actors: '3 speakers',
+        props: 'Stool, Lex lapel pin',
+        photographer: 'PDOC pool',
+        editor: 'Kyle',
+        link: 'https://drive.google.com/lsw-portraits-brief'
+      },
+      {
+        id: 's3',
+        project: 'LFC recap b-roll',
+        date: daysFromToday(9),
+        time: '18:30',
+        place: 'SEC Walk and Zen Garden',
+        actors: 'Crowd shots',
+        props: 'Gimbal, wide lens',
+        photographer: 'Lex media team',
+        editor: 'To be assigned',
+        link: ''
+      }
+    ];
+
+    // --- Works timeline rendering ---
+
+    const worksTimelineEl = document.getElementById('worksTimeline');
+
+    function renderWorksTimeline() {
+      worksTimelineEl.innerHTML = '';
+      const grouped = {};
+      blasts.forEach(b => {
+        if (!grouped[b.project]) grouped[b.project] = [];
+        grouped[b.project].push(b);
+      });
+      Object.values(grouped).forEach(list => list.sort((a,b) => a.dueDate - b.dueDate));
+
+      const projectNames = Object.keys(grouped).sort();
+      if (!projectNames.length) {
+        const empty = document.createElement('div');
+        empty.className = 'small';
+        empty.textContent = 'No works yet. This view will populate as blasts are assigned.';
+        worksTimelineEl.appendChild(empty);
+        return;
+      }
+
+      projectNames.forEach(project => {
+        const header = document.createElement('div');
+        header.className = 'small';
+        header.style.margin = '8px 0 4px';
+        header.style.fontWeight = '600';
+        header.textContent = project;
+        worksTimelineEl.appendChild(header);
+
+        grouped[project].forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'timeline-item';
+          row.dataset.workId = item.id;
+          const dateText = item.dueDate.toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+          let badgeClass = 'badge-status-pending';
+          if (item.status === 'In review') badgeClass = 'badge-status-review';
+          if (item.status === 'Approved') badgeClass = 'badge-status-approved';
+          row.innerHTML = `<div class="timeline-row"><div class="timeline-main"><div class="timeline-date">${dateText}</div><div class="timeline-title">${item.title}</div><div class="timeline-tag">${project}</div></div><div><span class="badge ${badgeClass}">${item.status}</span></div></div>`;
+          row.addEventListener('click', () => openWorkModal(item.id));
+          worksTimelineEl.appendChild(row);
+        });
+      });
+    }
+
+    // --- Work modal logic ---
+
+    const workModalBackdrop = document.getElementById('workModalBackdrop');
+    const workModalClose = document.getElementById('workModalClose');
+    const workModalBody = document.getElementById('workModalBody');
+
+    function openWorkModal(id) {
+      const work = blasts.find(b => b.id === id);
+      if (!work) return;
+      if (!currentRole) {
+        showToast('Choose a role first.', '', 'error');
+        return;
+      }
+      workModalBody.innerHTML = '';
+      const header = document.createElement('div');
+      header.innerHTML = `<div style="font-size:0.9rem;font-weight:600;margin-bottom:4px;">${work.title}</div><div class="small">Project: ${work.project} • Due: ${work.dueDate.toLocaleString()}</div>`;
+      workModalBody.appendChild(header);
+
+      const statusLine = document.createElement('div');
+      statusLine.className = 'small';
+      statusLine.style.margin = '6px 0 10px';
+      statusLine.textContent = 'Current status: ' + work.status;
+      workModalBody.appendChild(statusLine);
+
+      const submissionBlock = document.createElement('div');
+      submissionBlock.style.marginBottom = '10px';
+      submissionBlock.innerHTML = `<div class="small" style="margin-bottom:4px;font-weight:600;">Latest submission from deputy</div><div class="small">Content link: ${work.latestSubmissionLink || 'No submission yet.'}</div><div class="small">Notes: ${work.submissionNotes || 'No notes added yet.'}</div>`;
+      workModalBody.appendChild(submissionBlock);
+
+      const commentsBlock = document.createElement('div');
+      commentsBlock.innerHTML = '<div class="small" style="margin-bottom:4px;font-weight:600;">Comments</div>';
+      if (!work.comments.length) {
+        const empty = document.createElement('div');
+        empty.className = 'small';
+        empty.textContent = 'No comments yet.';
+        commentsBlock.appendChild(empty);
+      } else {
+        work.comments.forEach(c => {
+          const row = document.createElement('div');
+          row.className = 'small';
+          row.style.marginBottom = '4px';
+          row.textContent = `${c.from}: ${c.text}`;
+          if (currentRole === 'deputy') {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-ghost';
+            btn.style.padding = '3px 8px';
+            btn.style.fontSize = '0.7rem';
+            btn.textContent = c.resolved ? 'Resolved' : 'Mark as resolved';
+            if (c.resolved) btn.style.opacity = '0.7';
+            btn.addEventListener('click', () => {
+              c.resolved = !c.resolved;
+              openWorkModal(id);
+            });
+            row.appendChild(document.createElement('br'));
+            row.appendChild(btn);
+          } else {
+            const tag = document.createElement('span');
+            tag.className = 'badge';
+            tag.style.marginLeft = '6px';
+            tag.textContent = c.resolved ? 'Resolved' : 'Open';
+            row.appendChild(tag);
+          }
+          commentsBlock.appendChild(row);
+        });
+      }
+      workModalBody.appendChild(commentsBlock);
+
+      if (currentRole === 'deputy') {
+        const form = document.createElement('form');
+        form.className = 'inline-form';
+        form.style.marginTop = '10px';
+        form.innerHTML = `<div class="field"><label>Content link to upload</label><input type="url" name="link" placeholder="Paste Drive or file link here" value="${work.latestSubmissionLink || ''}"></div><div class="field"><label>Notes to approver</label><textarea name="notes" placeholder="Explain what changed or what you need from the AB.">${work.submissionNotes || ''}</textarea></div><div class="small">Deputies cannot change status or add comments here. This section is only for your submission and notes.</div><div style="margin-top:8px;"><button class="btn btn-primary" type="submit">Save submission</button></div>`;
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const link = form.elements['link'].value.trim();
+          const notes = form.elements['notes'].value.trim();
+          work.latestSubmissionLink = link;
+          work.submissionNotes = notes;
+          showToast('Submission saved for ' + work.title + '.', '', 'success');
+          renderWorksTimeline();
+          openWorkModal(id);
+        });
+        workModalBody.appendChild(form);
+      } else if (currentRole === 'approver') {
+        const form = document.createElement('form');
+        form.className = 'inline-form';
+        form.style.marginTop = '10px';
+        form.innerHTML = `<div class="field"><label>Add a comment</label><textarea name="comment" placeholder="Leave clear, actionable notes for the deputy."></textarea></div><div class="field"><label>Update status</label><select name="status"><option value="Planned" ${work.status==='Planned'?'selected':''}>Planned</option><option value="Pending submission" ${work.status==='Pending submission'?'selected':''}>Pending submission</option><option value="In review" ${work.status==='In review'?'selected':''}>In review</option><option value="Approved" ${work.status==='Approved'?'selected':''}>Approved</option></select></div><div class="small">Approvers can only comment and change status. Uploads stay with the deputy.</div><div style="margin-top:8px;display:flex;gap:8px;"><button class="btn btn-primary" type="submit">Save</button></div>`;
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const commentText = form.elements['comment'].value.trim();
+          const status = form.elements['status'].value;
+          if (commentText) {
+            work.comments.push({ id: 'c'+(Date.now()), from: 'Approver', text: commentText, resolved: false });
+          }
+          work.status = status;
+          showToast('Updates saved for ' + work.title + '.', '', 'success');
+          renderWorksTimeline();
+          openWorkModal(id);
+        });
+        workModalBody.appendChild(form);
+      }
+
+      workModalBackdrop.classList.add('active');
+      workModalBackdrop.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeWorkModal() {
+      workModalBackdrop.classList.remove('active');
+      workModalBackdrop.setAttribute('aria-hidden', 'true');
+    }
+
+    workModalClose.addEventListener('click', closeWorkModal);
+    workModalBackdrop.addEventListener('click', (e) => { if (e.target === workModalBackdrop) closeWorkModal(); });
+
+    // --- Shoot planner logic ---
+
+    const shootForm = document.getElementById('shootForm');
+    const shootGridEl = document.getElementById('shootGrid');
+    const shootIdInput = document.getElementById('shootId');
+    const shootProjectInput = document.getElementById('shootProject');
+    const shootDateInput = document.getElementById('shootDate');
+    const shootTimeInput = document.getElementById('shootTime');
+    const shootPlaceInput = document.getElementById('shootPlace');
+    const shootActorsInput = document.getElementById('shootActors');
+    const shootPropsInput = document.getElementById('shootProps');
+    const shootPhotographerInput = document.getElementById('shootPhotographer');
+    const shootEditorInput = document.getElementById('shootEditor');
+    const shootLinkInput = document.getElementById('shootLink');
+    const clearShootFormBtn = document.getElementById('clearShootFormBtn');
+
+    function renderShootGrid() {
+      shootGridEl.innerHTML = '';
+      if (!shoots.length) {
+        const empty = document.createElement('div');
+        empty.className = 'small';
+        empty.textContent = 'No shoots yet.';
+        shootGridEl.appendChild(empty);
+        return;
+      }
+      const sorted = [...shoots].sort((a,b) => a.date - b.date);
+      sorted.forEach(s => {
+        const card = document.createElement('div');
+        card.className = 'shoot-card';
+        card.dataset.shootId = s.id;
+        const dateStr = s.date.toLocaleDateString([], { month:'short', day:'numeric' });
+        card.innerHTML = `<div class="shoot-name">${s.project}</div><div class="shoot-meta">${dateStr} • ${s.time}</div><div class="shoot-meta">${s.place}</div>`;
+        card.addEventListener('click', () => loadShootIntoForm(s.id));
+        shootGridEl.appendChild(card);
+      });
+    }
+
+    function loadShootIntoForm(id) {
+      const s = shoots.find(sh => sh.id === id);
+      if (!s) return;
+      shootIdInput.value = s.id;
+      shootProjectInput.value = s.project;
+      shootDateInput.valueAsDate = s.date;
+      shootTimeInput.value = s.time;
+      shootPlaceInput.value = s.place;
+      shootActorsInput.value = s.actors;
+      shootPropsInput.value = s.props;
+      shootPhotographerInput.value = s.photographer;
+      shootEditorInput.value = s.editor;
+      shootLinkInput.value = s.link;
+    }
+
+    shootForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = shootIdInput.value || ('s'+Date.now());
+      const dateVal = shootDateInput.value;
+      const timeVal = shootTimeInput.value || '00:00';
+      if (!shootProjectInput.value.trim() || !dateVal) {
+        showToast('Please provide at least a project and a date for the shoot.', '', 'error');
+        return;
+      }
+      const existing = shoots.find(s => s.id === id);
+      const date = new Date(dateVal + 'T00:00:00');
+      const data = {
+        id,
+        project: shootProjectInput.value.trim(),
+        date,
+        time: timeVal,
+        place: shootPlaceInput.value.trim(),
+        actors: shootActorsInput.value.trim(),
+        props: shootPropsInput.value.trim(),
+        photographer: shootPhotographerInput.value.trim(),
+        editor: shootEditorInput.value.trim(),
+        link: shootLinkInput.value.trim()
+      };
+      if (existing) {
+        const idx = shoots.findIndex(s => s.id === id);
+        shoots[idx] = data;
+      } else {
+        shoots.push(data);
+      }
+      renderShootGrid();
+      showToast('Shoot saved.', '', 'success');
+    });
+
+    clearShootFormBtn.addEventListener('click', () => {
+      shootIdInput.value = '';
+      shootProjectInput.value = '';
+      shootDateInput.value = '';
+      shootTimeInput.value = '';
+      shootPlaceInput.value = '';
+      shootActorsInput.value = '';
+      shootPropsInput.value = '';
+      shootPhotographerInput.value = '';
+      shootEditorInput.value = '';
+      shootLinkInput.value = '';
+    });
+
+    // Initial render
+    renderWorksTimeline();
+    renderShootGrid();
+  </script>
+</body>
+</html>
